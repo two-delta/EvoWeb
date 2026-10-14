@@ -19,3 +19,5 @@ tests/smoke_sets/
 # downloaded from Hugging Face by evoweb.paths.ensure_data
 data/evoweb_benchmark.jsonl
 data/multilingual/
+# pip install -e .
+*.egg-info/
