@@ -56,7 +56,7 @@ harness/run_local.sh <run-id> <samples> <parallelism>
 * Env passthrough (only variables that are set reach the container; everything else takes the
   paper default from `run_sample.sh`): `API_KEY MODEL PROVIDER API_URL EVAL_API_KEY EVAL_MODEL
   EVAL_API_URL EVAL_PROVIDER JSONL_FILE GENERATOR MAX_TOKENS AGENT_MAX_TURNS
-  AGENT_MAX_OUTPUT_TOKENS AGENT_THINKING_BUDGET OPENHANDS_REASONING_EFFORT HARNESS_SAMPLING_PIN
+  AGENT_MAX_OUTPUT_TOKENS AGENT_THINKING_BUDGET OPENHANDS_REASONING_EFFORT OPENHANDS_SECURITY_RISK_OPTIONAL HARNESS_SAMPLING_PIN
   HARNESS_THINKING HARNESS_THINKING_BUDGET HARNESS_REASONING_EFFORT HARNESS_ANTHROPIC_EFFORT
   MINI_MODEL_CLASS WEBGEN_EFFICIENCY_NUDGE WEBGEN_NAV_GUIDANCE WEBGEN_TURN_TIMEOUT
   HARNESS_LLM_TIMEOUT WEBGEN_PROXY_TIMEOUT UV_EXCLUDE_NEWER EXTENSIONS_REF WEBGEN_RECORD_VIDEO
@@ -90,6 +90,7 @@ variable reproduces the paper.
 | `AGENT_MAX_OUTPUT_TOKENS` -> `OPENHANDS_MAX_OUTPUT_TOKENS` | `64000` | `openhands/entry.py pin_sampling` | output ceiling; Anthropic routes and listed reasoning routes |
 | `AGENT_THINKING_BUDGET` -> `OPENHANDS_THINKING_BUDGET` | `16000` | `openhands/entry.py pin_sampling` | thinking budget (haiku / sonnet: `thinking.enabled@16000`); Claude models that only take adaptive thinking (matched by name inside `pin_sampling`: `opus-4-8`, `opus-5`, `fable`) get `reasoning_effort` instead |
 | `OPENHANDS_REASONING_EFFORT` | `high` | `openhands/entry.py pin_sampling` | effort pin for adaptive-only Claude models and for `openai/` model ids matching `gpt-5`, `glm-5`, `deepseek-v4`, `qwen3.5-397b` (the reasoning routes `pin_sampling` lists) |
+| `OPENHANDS_SECURITY_RISK_OPTIONAL` | `0` | `openhands/entry.py` | `1` accepts a tool call that omits `security_risk` (risk UNKNOWN) instead of rejecting it; the paper's rows used `0`. Models that omit the field and then stall (Qwen 3.5 397B) need `1`; Claude Haiku 4.5 omits it too but recovers, so `1` raises its score above the paper's |
 | `HARNESS_SAMPLING_PIN` | `64000:16000` | `generators/capture.py` | proxy-level `<ceiling>:<budget>` for **Anthropic upstreams only**, so bash / mini / claude_code sample like openhands. Set it to `""` for adaptive-only Claude models, which reject `thinking.type=enabled` (`HARNESS_SAMPLING_PIN= harness/run_local.sh ...`; `run_sample.sh` says the same) |
 | `HARNESS_THINKING` | empty (pass-through) | capture proxy, `pin_sampling` | `off` strips thinking (ablation), `force` injects `HARNESS_THINKING_BUDGET` uniformly |
 | `HARNESS_THINKING_BUDGET` | empty | capture proxy | only read with `HARNESS_THINKING=force` |

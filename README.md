@@ -80,8 +80,13 @@ you only need the port; the host defaults to `localhost`.
 ```bash
 export ANTHROPIC_API_KEY=<key>      # for the judge
 
-evoweb run --name qwen397b --model Qwen/Qwen3.5-397B-A17B-FP8 --model-port 8000
+OPENHANDS_SECURITY_RISK_OPTIONAL=1 evoweb run --name qwen397b --model Qwen/Qwen3.5-397B-A17B-FP8 --model-port 8000
 ```
+
+`OPENHANDS_SECURITY_RISK_OPTIONAL=1` accepts a tool call that omits OpenHands' `security_risk`
+field instead of rejecting it; Qwen 3.5 omits it and stalls without this. The paper's rows were
+run without it, and it also raises Claude Haiku 4.5 above its paper score, so leave it unset
+when reproducing the paper.
 
 The judge defaults to Claude Sonnet 4.6 on the Anthropic API. To serve the judge yourself
 (a vision model: it reads screenshots, so add `--limit-mm-per-prompt '{"image":4}'` to its vLLM command):

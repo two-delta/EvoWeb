@@ -25,6 +25,9 @@
 #   AGENT_MAX_OUTPUT_TOKENS   [64000]   openhands sampling pin: output ceiling (Anthropic routes)
 #   AGENT_THINKING_BUDGET     [16000]   openhands sampling pin: thinking budget (Anthropic routes)
 #   OPENHANDS_REASONING_EFFORT [high]   effort pin for adaptive-only Claude models and reasoning routes
+#   OPENHANDS_SECURITY_RISK_OPTIONAL [0] 1 = a tool call without `security_risk` is accepted (risk UNKNOWN)
+#                                       instead of rejected; the paper's rows were run with 0. Needed by
+#                                       models that omit the field and then stall, e.g. Qwen 3.5 397B.
 #   HARNESS_SAMPLING_PIN      [64000:16000] capture-proxy pin for Anthropic upstreams (all harnesses)
 #   HARNESS_THINKING          []        "" = pass-through (pins authoritative) | off | force
 #   WEBGEN_EFFICIENCY_NUDGE   [on]
@@ -102,6 +105,7 @@ export AGENT_MAX_TURNS="${AGENT_MAX_TURNS:-20}"
 export OPENHANDS_MAX_OUTPUT_TOKENS="${OPENHANDS_MAX_OUTPUT_TOKENS:-${AGENT_MAX_OUTPUT_TOKENS:-64000}}"
 export OPENHANDS_THINKING_BUDGET="${OPENHANDS_THINKING_BUDGET:-${AGENT_THINKING_BUDGET:-16000}}"
 export OPENHANDS_REASONING_EFFORT="${OPENHANDS_REASONING_EFFORT:-high}"
+export OPENHANDS_SECURITY_RISK_OPTIONAL="${OPENHANDS_SECURITY_RISK_OPTIONAL:-0}"
 # Capture-proxy pins (generators/capture.py), the seam every harness passes through.
 # HARNESS_THINKING: "" = pass-through (the pins above are authoritative), "off" = strip thinking,
 # "force" = uniform proxy injection of HARNESS_THINKING_BUDGET.

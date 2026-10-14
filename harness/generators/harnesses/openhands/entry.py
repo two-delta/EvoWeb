@@ -253,5 +253,9 @@ if __name__ == "__main__":
     settings.write_text(json.dumps(spec))
     _cap_iterations()
     _sort_skill_discovery()
-    _tolerate_missing_security_risk()
+    # Off by default: the paper's rows were run with the field required (Claude Haiku 4.5 omits
+    # it often and recovers, which costs it turns; Fable never omits it). Switch it on for
+    # models that omit it fatally, e.g. Qwen 3.5; scores are then not the paper's harness.
+    if os.environ.get("OPENHANDS_SECURITY_RISK_OPTIONAL") == "1":
+        _tolerate_missing_security_risk()
     main()
