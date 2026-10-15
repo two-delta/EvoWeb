@@ -308,10 +308,11 @@ const Fast: React.FC = () => {
   );
 };
 
-const EndCard: React.FC = () => {
+const EndCard: React.FC<{ animate?: boolean }> = ({ animate = true }) => {
   const f = useCurrentFrame();
-  const p = spring({ frame: f, fps: FPS, config: { damping: 200 } });
-  const icons = spring({ frame: f - 10, fps: FPS, config: { damping: 200 } });
+  // the opening card is fully drawn from frame 0, so the first frame (the thumbnail) is never blank
+  const p = animate ? spring({ frame: f, fps: FPS, config: { damping: 200 } }) : 1;
+  const icons = animate ? spring({ frame: f - 10, fps: FPS, config: { damping: 200 } }) : 1;
   const { tall } = useTall();
   const ico = tall ? 150 : 170;
   return (
@@ -340,7 +341,7 @@ export const Teaser: React.FC<{ results?: boolean; hook?: boolean }> = ({ result
   const cur = f < t2 ? Math.max(0, starts.findIndex((st, k) => f >= st && f < st + ITER_LENS[k])) : 0;
   return (
     <AbsoluteFill style={{ background: PAPER }}>
-      {hook && f < t1 && <EndCard />}
+      {hook && f < t1 && <EndCard animate={false} />}
       {f >= t1 && f < t2 && <Shifted from={starts[cur]}><Iteration i={cur} /></Shifted>}
       {f >= t2 && f < t3 && <Shifted from={t2}><Fast /></Shifted>}
       {results && f >= t3 && f < t4 && <Shifted from={t3}><Results /></Shifted>}
