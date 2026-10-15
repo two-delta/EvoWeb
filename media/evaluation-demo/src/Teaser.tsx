@@ -1,13 +1,13 @@
 import React from "react";
 import { AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import data from "../public/data.json";
-import { AgentIcon, JudgeIcon, UserAvatar } from "./Icons";
+import { AgentIcon, GitHubIcon, HuggingFaceIcon, JudgeIcon, UserAvatar } from "./Icons";
 import { Results, RESULTS_FRAMES } from "./Results";
 import { INK, KIND, LINE, MONO, MUTED, NAVY, NODE_EDGE, NODE_FILL, PAPER, SANS, VERDICT } from "./theme";
 
 const FPS = 30;
 const S = (s: number) => Math.round(s * FPS);
-const HOOK = S(3);
+const HOOK = S(2.6);
 /** For illustration only (the teasers): request 1's real verdicts are six passes and one partial; two
  * of them are shown as a fail and a partial so the viewer sees every grade early. The pass rate shown
  * for R1 is recomputed from these; the main film and the scoring stay on the real trace. */
@@ -18,7 +18,7 @@ const shownAccuracy = (i: number) => {
   return (100 * cs.reduce((a, c) => a + (c.verdict === "yes" ? 1 : c.verdict === "partial" ? 0.5 : 0), 0)) / cs.length;
 };
 const SHOWN_ACC = data.accuracy.map((a, i) => (i < 3 ? shownAccuracy(i) : a));
-const FAST = S(3);
+const FAST = S(6);
 const END = S(2);
 /** The stage times of one request, in frames: everything waits for the stage before it. */
 const timing = (i: number) => {
@@ -230,24 +230,87 @@ const Iteration: React.FC<{ i: number }> = ({ i }) => {
   );
 };
 
+/** Requests 1 to 10 as the app's dependency graph, lighting up in order, with the mean pass rate per
+ * request over the paper's runs drawing underneath. */
 const Fast: React.FC = () => {
   const f = useCurrentFrame();
-  const n = Math.min(10, 3 + Math.floor(f / (FAST / 9)));
-  const { tall, H } = useTall();
+  const { tall, W, H } = useTall();
+  const n = 10;
+  const per = (FAST - S(1.2)) / n;
+  const lit = Math.min(n, 1 + Math.floor(f / per)); // requests lit so far
+  const edges = data.dag.edges as { from: number; to: number }[];
+  // nodes on a row
+  const left = tall ? 40 : 110, right = W - left;
+  const nodeW = tall ? 92 : 150, nodeH = tall ? 70 : 92;
+  const gap = (right - left - n * nodeW) / (n - 1);
+  const cx = (k: number) => left + (k - 1) * (nodeW + gap) + nodeW / 2;
+  const rowY = tall ? 330 : 400;
+  const arcTop = rowY - nodeH / 2;
+  const curveTop = tall ? 520 : 620, curveH = tall ? 300 : 300, curveLeft = left + 60, curveRight = right - 20;
+  const Y0 = 50; // the axis starts at 50: every run scores above it, and the drift is visible
+  const curve = data.request_curve as number[];
+  const px = (k: number) => curveLeft + ((k - 1) / (n - 1)) * (curveRight - curveLeft);
+  const py = (v: number) => curveTop + curveH - ((v - Y0) / (100 - Y0)) * curveH;
+  const drawn = Math.min(n, lit);
+  const pts = curve.slice(0, drawn).map((v, i) => `${px(i + 1)},${py(v)}`);
   return (
     <AbsoluteFill style={{ fontFamily: SANS, color: NAVY }}>
-      <Strip lit={n} current={Math.min(9, n - 1)} y={34} scale={tall ? 0.78 : 0.9} />
-      <div style={{ position: "absolute", left: 60, right: 60, top: tall ? H * 0.3 : 300, textAlign: "center" }}>
-        <div style={{ fontSize: tall ? 54 : 64, fontWeight: 700 }}>… through request 10</div>
-        <div style={{ fontSize: tall ? 26 : 32, color: INK, marginTop: 24, lineHeight: 1.4 }}>
-          every request builds on earlier ones · 3 functional, 1 integration, 1 backward check each
-        </div>
-        <div style={{ fontSize: tall ? 34 : 40, fontWeight: 700, marginTop: 70, opacity: fadeIn(f - S(1.6), 12) }}>
-          Grade {data.scores.grade.toFixed(3)} · Survival {data.scores.survival.toFixed(2)} of 10
-        </div>
-        <div style={{ fontSize: 26, color: MUTED, marginTop: 10, opacity: fadeIn(f - S(1.8), 12) }}>
-          this app · the benchmark averages 32 apps and 3 runs per model
-        </div>
+      <div style={{ position: "absolute", left, top: tall ? 60 : 80, fontSize: tall ? 38 : 54, fontWeight: 700 }}>… through request 10</div>
+      <div style={{ position: "absolute", left, top: tall ? 112 : 150, fontSize: tall ? 18 : 22, color: MUTED }}>each request depends on earlier ones: the dependency graph of this app</div>
+      <svg width={W} height={H} style={{ position: "absolute", left: 0, top: 0 }}>
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill={NAVY} />
+          </marker>
+          <marker id="arrowhead-dim" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill={LINE} />
+          </marker>
+        </defs>
+        {edges.map((e, i) => {
+          const on = e.to <= lit;
+          const x1 = cx(e.from), x2 = cx(e.to);
+          const span = e.to - e.from;
+          const adjacent = span === 1;
+          const h = Math.min(tall ? 120 : 180, 36 + span * (tall ? 18 : 26));
+          const d = adjacent
+            ? `M${x1 + nodeW / 2} ${rowY} L${x2 - nodeW / 2 - 2} ${rowY}`
+            : `M${x1} ${arcTop} C ${x1} ${arcTop - h}, ${x2} ${arcTop - h}, ${x2} ${arcTop - 2}`;
+          return <path key={i} d={d} fill="none" stroke={on ? NAVY : LINE} strokeWidth={on ? 3 : 2} markerEnd={on ? "url(#arrowhead)" : "url(#arrowhead-dim)"} />;
+        })}
+        {/* curve axes */}
+        <line x1={curveLeft} y1={curveTop + curveH} x2={curveRight} y2={curveTop + curveH} stroke={INK} strokeWidth={2} />
+        <line x1={curveLeft} y1={curveTop} x2={curveLeft} y2={curveTop + curveH} stroke={INK} strokeWidth={2} />
+        {[50, 60, 70, 80, 90, 100].map((v) => (
+          <g key={v}>
+            <line x1={curveLeft - 6} y1={py(v)} x2={curveRight} y2={py(v)} stroke={v > Y0 ? LINE : INK} strokeWidth={1} />
+            <text x={curveLeft - 12} y={py(v) + 6} textAnchor="end" fontSize={tall ? 15 : 18} fill={MUTED} fontFamily={SANS}>{v}</text>
+          </g>
+        ))}
+        {Array.from({ length: n }, (_, i) => (
+          <text key={i} x={px(i + 1)} y={curveTop + curveH + (tall ? 24 : 28)} textAnchor="middle" fontSize={tall ? 15 : 18} fill={i + 1 <= drawn ? NAVY : MUTED} fontFamily={SANS} fontWeight={i + 1 <= drawn ? 700 : 400}>R{i + 1}</text>
+        ))}
+        {pts.length > 1 && <polyline points={pts.join(" ")} fill="none" stroke="#2f5f8f" strokeWidth={4} strokeLinejoin="round" strokeLinecap="round" />}
+        {curve.slice(0, drawn).map((v, i) => (
+          <g key={i}>
+            <circle cx={px(i + 1)} cy={py(v)} r={tall ? 6 : 7} fill="#2f5f8f" />
+            <text x={px(i + 1)} y={py(v) - 14} textAnchor="middle" fontSize={tall ? 14 : 17} fill={NAVY} fontFamily={SANS} fontWeight={600}>{v.toFixed(0)}</text>
+          </g>
+        ))}
+      </svg>
+      {Array.from({ length: n }, (_, i) => {
+        const k = i + 1;
+        const on = k <= lit;
+        const cur = k === lit;
+        const pop = spring({ frame: f - (k - 1) * per, fps: FPS, config: { damping: 14, stiffness: 160 } });
+        return (
+          <div key={k} style={{ position: "absolute", left: cx(k) - nodeW / 2, top: rowY - nodeH / 2, width: nodeW, height: nodeH, borderRadius: 14, border: `3px solid ${on ? NODE_EDGE[i % 5] : LINE}`, background: on ? NODE_FILL[i % 5] : "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: on ? NAVY : MUTED, transform: `scale(${on ? 0.9 + 0.1 * pop : 1})`, boxShadow: cur ? `0 0 0 6px ${NODE_EDGE[i % 5]}33` : "none" }}>
+            <div style={{ fontWeight: 700, fontSize: tall ? 24 : 32 }}>R{k}</div>
+            {!tall && <div style={{ fontSize: 13, color: INK, opacity: on ? 1 : 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: nodeW - 14 }}>{(data.dag.labels as Record<string, string>)[String(k)]}</div>}
+          </div>
+        );
+      })}
+      <div style={{ position: "absolute", left: curveLeft, top: curveTop - (tall ? 44 : 50), fontSize: tall ? 18 : 22, color: INK }}>
+        <b>functional QA per request</b> <span style={{ color: MUTED }}>· % of checks passed, mean over the paper's runs (axis from 50)</span>
       </div>
     </AbsoluteFill>
   );
@@ -256,15 +319,23 @@ const Fast: React.FC = () => {
 const EndCard: React.FC = () => {
   const f = useCurrentFrame();
   const p = spring({ frame: f, fps: FPS, config: { damping: 200 } });
+  const icons = spring({ frame: f - 10, fps: FPS, config: { damping: 200 } });
   const { tall } = useTall();
+  const ico = tall ? 150 : 170;
   return (
     <AbsoluteFill style={{ fontFamily: SANS, color: NAVY, justifyContent: "center", alignItems: "center", opacity: p, padding: "0 60px", textAlign: "center" }}>
-      <div style={{ fontSize: tall ? 100 : 120, fontWeight: 700, letterSpacing: -2 }}>EvoWeb</div>
-      <div style={{ fontSize: tall ? 28 : 34, color: INK, marginTop: 6 }}>A Benchmark for Coding Agents on Evolving Web Applications</div>
-      <div style={{ fontSize: tall ? 26 : 30, color: MUTED, marginTop: 40, lineHeight: 1.6, textAlign: "center" }}>
-        github.com/two-delta/EvoWeb
-        <br />
-        huggingface.co/datasets/TD-Labs/EvoWeb
+      <div style={{ fontSize: tall ? 110 : 130, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>EvoWeb</div>
+      <div style={{ fontSize: tall ? 28 : 34, color: INK, marginTop: 14 }}>A Benchmark for Coding Agents on Evolving Web Applications</div>
+      <div style={{ fontSize: tall ? 22 : 26, color: MUTED, marginTop: 10 }}>How well do coding agents sustain long-horizon follow-up requests?</div>
+      <div style={{ display: "flex", gap: tall ? 120 : 160, marginTop: tall ? 70 : 80, opacity: icons, transform: `translateY(${(1 - icons) * 16}px)` }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+          <GitHubIcon size={ico} />
+          <div style={{ fontSize: 24, fontWeight: 600, color: INK }}>code and traces</div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+          <HuggingFaceIcon size={ico} />
+          <div style={{ fontSize: 24, fontWeight: 600, color: INK }}>dataset</div>
+        </div>
       </div>
     </AbsoluteFill>
   );
@@ -277,14 +348,11 @@ export const Teaser: React.FC<{ results?: boolean; hook?: boolean }> = ({ result
   const cur = f < t2 ? Math.max(0, starts.findIndex((st, k) => f >= st && f < st + ITER_LENS[k])) : 0;
   return (
     <AbsoluteFill style={{ background: PAPER }}>
-      {hook && f < t1 && <Hook />}
+      {hook && f < t1 && <EndCard />}
       {f >= t1 && f < t2 && <Shifted from={starts[cur]}><Iteration i={cur} /></Shifted>}
       {f >= t2 && f < t3 && <Shifted from={t2}><Fast /></Shifted>}
       {results && f >= t3 && f < t4 && <Shifted from={t3}><Results /></Shifted>}
       {f >= t4 && <Shifted from={t4}><EndCard /></Shifted>}
-      <div style={{ position: "absolute", right: 40, bottom: 18, fontFamily: SANS, fontSize: 15, color: MUTED }}>
-        real trace: app {data.app}, {data.run} · R1 verdicts adjusted to show every grade
-      </div>
     </AbsoluteFill>
   );
 };

@@ -939,5 +939,119 @@
    "usd": 1.54,
    "open": true
   }
- ]
+ ],
+ "request_curve": [
+  80.4,
+  87.4,
+  86.7,
+  84.9,
+  85.8,
+  78.9,
+  78.4,
+  78.9,
+  77.4,
+  80.0
+ ],
+ "dag": {
+  "edges": [
+   {
+    "from": 1,
+    "to": 2,
+    "what": "report generation launched from screener result rows"
+   },
+   {
+    "from": 2,
+    "to": 3,
+    "what": "add-to-watchlist buttons on screener result rows"
+   },
+   {
+    "from": 1,
+    "to": 3,
+    "what": "add-to-watchlist button on generated report pages"
+   },
+   {
+    "from": 3,
+    "to": 4,
+    "what": "position rows attach to watchlist entries"
+   },
+   {
+    "from": 1,
+    "to": 5,
+    "what": "health score section embedded in generated reports"
+   },
+   {
+    "from": 3,
+    "to": 6,
+    "what": "alert rules attach only to watchlist stocks"
+   },
+   {
+    "from": 1,
+    "to": 7,
+    "what": "earnings highlights section in generated reports"
+   },
+   {
+    "from": 5,
+    "to": 8,
+    "what": "health score totals compared and highlighted in the grid"
+   },
+   {
+    "from": 1,
+    "to": 9,
+    "what": "report page restyled"
+   },
+   {
+    "from": 2,
+    "to": 9,
+    "what": "screener page restyled"
+   },
+   {
+    "from": 3,
+    "to": 9,
+    "what": "watchlist page restyled"
+   },
+   {
+    "from": 5,
+    "to": 9,
+    "what": "ratings page restyled"
+   },
+   {
+    "from": 6,
+    "to": 9,
+    "what": "alerts center restyled"
+   },
+   {
+    "from": 4,
+    "to": 10,
+    "what": "portfolio tile totals value and gain from positions"
+   },
+   {
+    "from": 6,
+    "to": 10,
+    "what": "alerts tile counts currently triggered rules"
+   },
+   {
+    "from": 5,
+    "to": 10,
+    "what": "top-rated tile names best health score and grade"
+   },
+   {
+    "from": 3,
+    "to": 10,
+    "what": "watchlist tile shows per-group counts"
+   }
+  ],
+  "labels": {
+   "1": "base app",
+   "2": "multi-criteria stock screener",
+   "3": "grouped watchlist",
+   "4": "portfolio positions calculator",
+   "5": "health score ratings",
+   "6": "alerts center",
+   "7": "earnings transcript search",
+   "8": "side-by-side compare tool",
+   "9": "theming restyle",
+   "10": "command center dashboard"
+  }
+ },
+ "request_curve_note": "mean % of checks passed per request over the paper's 12 Anthropic runs; an app that has stopped working counts 0"
 }
