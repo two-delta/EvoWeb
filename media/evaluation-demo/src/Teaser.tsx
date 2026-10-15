@@ -278,11 +278,20 @@ const Fast: React.FC = () => {
           <marker id="ahd" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill={LINE} /></marker>
         </defs>
         {edges.map((e, i) => {
-          const on = e.to <= lit;
           const a = pos[e.from], b = pos[e.to];
           const x1 = a.x + nodeW / 2, x2 = b.x - nodeW / 2 - 3;
           const cx1 = x1 + (x2 - x1) * 0.45, cx2 = x1 + (x2 - x1) * 0.55;
-          return <path key={i} d={`M${x1} ${a.y} C ${cx1} ${a.y}, ${cx2} ${b.y}, ${x2} ${b.y}`} fill="none" stroke={on ? NAVY : LINE} strokeWidth={on ? 3 : 1.5} markerEnd={on ? "url(#ah)" : "url(#ahd)"} opacity={on ? 0.9 : 0.8} />;
+          const d = `M${x1} ${a.y} C ${cx1} ${a.y}, ${cx2} ${b.y}, ${x2} ${b.y}`;
+          // the arrow grows from its source while its target request is being added
+          const grow = Math.max(0, Math.min(1, (f - (e.to - 1) * per) / (per * 0.85)));
+          return (
+            <g key={i}>
+              <path d={d} fill="none" stroke={LINE} strokeWidth={1.5} markerEnd="url(#ahd)" opacity={0.8} />
+              {grow > 0 && (
+                <path d={d} fill="none" stroke={NAVY} strokeWidth={3} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - grow} strokeLinecap="round" markerEnd={grow >= 1 ? "url(#ah)" : undefined} opacity={0.9} />
+              )}
+            </g>
+          );
         })}
         {/* the schematic curve */}
         <line x1={curveLeft} y1={curveTop + curveH} x2={curveRight} y2={curveTop + curveH} stroke={INK} strokeWidth={2} />
