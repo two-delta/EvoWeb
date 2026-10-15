@@ -18,7 +18,7 @@ const shownAccuracy = (i: number) => {
   return (100 * cs.reduce((a, c) => a + (c.verdict === "yes" ? 1 : c.verdict === "partial" ? 0.5 : 0), 0)) / cs.length;
 };
 const SHOWN_ACC = data.accuracy.map((a, i) => (i < 3 ? shownAccuracy(i) : a));
-const FAST = S(6);
+const FAST = S(7);
 const END = S(2);
 /** The stage times of one request, in frames: everything waits for the stage before it. */
 const timing = (i: number) => {
@@ -230,72 +230,64 @@ const Iteration: React.FC<{ i: number }> = ({ i }) => {
   );
 };
 
-/** Requests 1 to 10 as the app's dependency graph, lighting up in order, with the mean pass rate per
- * request over the paper's runs drawing underneath. */
+/** Requests 1 to 10 as the app's dependency graph, laid out by depth, lighting up in request order,
+ * with a schematic of functional QA falling as requests pile up drawn underneath. */
+const SCHEMATIC = [92, 88, 83, 77, 70, 64, 58, 52, 47, 42]; // illustrative, not measured
 const Fast: React.FC = () => {
   const f = useCurrentFrame();
   const { tall, W, H } = useTall();
   const n = 10;
   const per = (FAST - S(1.2)) / n;
-  const lit = Math.min(n, 1 + Math.floor(f / per)); // requests lit so far
+  const lit = Math.min(n, 1 + Math.floor(f / per));
   const edges = data.dag.edges as { from: number; to: number }[];
-  // nodes on a row
-  const left = tall ? 40 : 110, right = W - left;
-  const nodeW = tall ? 92 : 150, nodeH = tall ? 70 : 92;
-  const gap = (right - left - n * nodeW) / (n - 1);
-  const cx = (k: number) => left + (k - 1) * (nodeW + gap) + nodeW / 2;
-  const rowY = tall ? 330 : 400;
-  const arcTop = rowY - nodeH / 2;
-  const curveTop = tall ? 520 : 620, curveH = tall ? 300 : 300, curveLeft = left + 60, curveRight = right - 20;
-  const Y0 = 50; // the axis starts at 50: every run scores above it, and the drift is visible
-  const curve = data.request_curve as number[];
+  // layered layout: depth = longest path from R1; nodes of one depth share a column
+  const depth: number[] = Array(n + 1).fill(0);
+  for (let pass = 0; pass < n; pass++) for (const e of edges) depth[e.to] = Math.max(depth[e.to], depth[e.from] + 1);
+  const maxD = Math.max(...depth.slice(1));
+  const cols: number[][] = Array.from({ length: maxD + 1 }, () => []);
+  for (let k = 1; k <= n; k++) cols[depth[k]].push(k);
+  const gLeft = tall ? 60 : 120, gRight = W - gLeft;
+  const gTop = tall ? 185 : 225, gBottom = tall ? 570 : 610;
+  const nodeW = tall ? 96 : 150, nodeH = tall ? 54 : 70;
+  const colX = (d: number) => gLeft + nodeW / 2 + (d / maxD) * (gRight - gLeft - nodeW);
+  const pos: Record<number, { x: number; y: number }> = {};
+  cols.forEach((ks, d) => {
+    ks.sort((a, b) => a - b);
+    const span = gBottom - gTop;
+    ks.forEach((k, i) => {
+      pos[k] = { x: colX(d), y: ks.length === 1 ? gTop + span / 2 : gTop + (i / (ks.length - 1)) * span };
+    });
+  });
+  const curveTop = tall ? 680 : 700, curveH = tall ? 260 : 280, curveLeft = gLeft + 50, curveRight = gRight - 10;
   const px = (k: number) => curveLeft + ((k - 1) / (n - 1)) * (curveRight - curveLeft);
-  const py = (v: number) => curveTop + curveH - ((v - Y0) / (100 - Y0)) * curveH;
-  const drawn = Math.min(n, lit);
-  const pts = curve.slice(0, drawn).map((v, i) => `${px(i + 1)},${py(v)}`);
+  const py = (v: number) => curveTop + curveH - (v / 100) * curveH;
+  const pts = SCHEMATIC.slice(0, lit).map((v, i) => `${px(i + 1)},${py(v)}`);
   return (
     <AbsoluteFill style={{ fontFamily: SANS, color: NAVY }}>
-      <div style={{ position: "absolute", left, top: tall ? 60 : 80, fontSize: tall ? 38 : 54, fontWeight: 700 }}>… through request 10</div>
-      <div style={{ position: "absolute", left, top: tall ? 112 : 150, fontSize: tall ? 18 : 22, color: MUTED }}>each request depends on earlier ones: the dependency graph of this app</div>
+      <div style={{ position: "absolute", left: gLeft, top: tall ? 50 : 60, fontSize: tall ? 38 : 54, fontWeight: 700 }}>… through request 10</div>
+      <div style={{ position: "absolute", left: gLeft, top: tall ? 100 : 128, fontSize: tall ? 18 : 22, color: MUTED }}>each request depends on earlier ones: the dependency graph of this app, in request order</div>
       <svg width={W} height={H} style={{ position: "absolute", left: 0, top: 0 }}>
         <defs>
-          <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-            <path d="M0 0 L10 5 L0 10 z" fill={NAVY} />
-          </marker>
-          <marker id="arrowhead-dim" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-            <path d="M0 0 L10 5 L0 10 z" fill={LINE} />
-          </marker>
+          <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill={NAVY} /></marker>
+          <marker id="ahd" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill={LINE} /></marker>
         </defs>
         {edges.map((e, i) => {
           const on = e.to <= lit;
-          const x1 = cx(e.from), x2 = cx(e.to);
-          const span = e.to - e.from;
-          const adjacent = span === 1;
-          const h = Math.min(tall ? 120 : 180, 36 + span * (tall ? 18 : 26));
-          const d = adjacent
-            ? `M${x1 + nodeW / 2} ${rowY} L${x2 - nodeW / 2 - 2} ${rowY}`
-            : `M${x1} ${arcTop} C ${x1} ${arcTop - h}, ${x2} ${arcTop - h}, ${x2} ${arcTop - 2}`;
-          return <path key={i} d={d} fill="none" stroke={on ? NAVY : LINE} strokeWidth={on ? 3 : 2} markerEnd={on ? "url(#arrowhead)" : "url(#arrowhead-dim)"} />;
+          const a = pos[e.from], b = pos[e.to];
+          const x1 = a.x + nodeW / 2, x2 = b.x - nodeW / 2 - 3;
+          const cx1 = x1 + (x2 - x1) * 0.45, cx2 = x1 + (x2 - x1) * 0.55;
+          return <path key={i} d={`M${x1} ${a.y} C ${cx1} ${a.y}, ${cx2} ${b.y}, ${x2} ${b.y}`} fill="none" stroke={on ? NAVY : LINE} strokeWidth={on ? 3 : 1.5} markerEnd={on ? "url(#ah)" : "url(#ahd)"} opacity={on ? 0.9 : 0.8} />;
         })}
-        {/* curve axes */}
+        {/* the schematic curve */}
         <line x1={curveLeft} y1={curveTop + curveH} x2={curveRight} y2={curveTop + curveH} stroke={INK} strokeWidth={2} />
         <line x1={curveLeft} y1={curveTop} x2={curveLeft} y2={curveTop + curveH} stroke={INK} strokeWidth={2} />
-        {[50, 60, 70, 80, 90, 100].map((v) => (
-          <g key={v}>
-            <line x1={curveLeft - 6} y1={py(v)} x2={curveRight} y2={py(v)} stroke={v > Y0 ? LINE : INK} strokeWidth={1} />
-            <text x={curveLeft - 12} y={py(v) + 6} textAnchor="end" fontSize={tall ? 15 : 18} fill={MUTED} fontFamily={SANS}>{v}</text>
-          </g>
-        ))}
+        <text x={curveLeft - 10} y={curveTop + 8} textAnchor="end" fontSize={tall ? 14 : 16} fill={MUTED} fontFamily={SANS}>high</text>
+        <text x={curveLeft - 10} y={curveTop + curveH} textAnchor="end" fontSize={tall ? 14 : 16} fill={MUTED} fontFamily={SANS}>low</text>
         {Array.from({ length: n }, (_, i) => (
-          <text key={i} x={px(i + 1)} y={curveTop + curveH + (tall ? 24 : 28)} textAnchor="middle" fontSize={tall ? 15 : 18} fill={i + 1 <= drawn ? NAVY : MUTED} fontFamily={SANS} fontWeight={i + 1 <= drawn ? 700 : 400}>R{i + 1}</text>
+          <text key={i} x={px(i + 1)} y={curveTop + curveH + (tall ? 22 : 26)} textAnchor="middle" fontSize={tall ? 15 : 18} fill={i + 1 <= lit ? NAVY : MUTED} fontFamily={SANS} fontWeight={i + 1 <= lit ? 700 : 400}>R{i + 1}</text>
         ))}
-        {pts.length > 1 && <polyline points={pts.join(" ")} fill="none" stroke="#2f5f8f" strokeWidth={4} strokeLinejoin="round" strokeLinecap="round" />}
-        {curve.slice(0, drawn).map((v, i) => (
-          <g key={i}>
-            <circle cx={px(i + 1)} cy={py(v)} r={tall ? 6 : 7} fill="#2f5f8f" />
-            <text x={px(i + 1)} y={py(v) - 14} textAnchor="middle" fontSize={tall ? 14 : 17} fill={NAVY} fontFamily={SANS} fontWeight={600}>{v.toFixed(0)}</text>
-          </g>
-        ))}
+        {pts.length > 1 && <polyline points={pts.join(" ")} fill="none" stroke="#c05a5a" strokeWidth={4} strokeLinejoin="round" strokeLinecap="round" />}
+        {SCHEMATIC.slice(0, lit).map((v, i) => <circle key={i} cx={px(i + 1)} cy={py(v)} r={tall ? 6 : 7} fill="#c05a5a" />)}
       </svg>
       {Array.from({ length: n }, (_, i) => {
         const k = i + 1;
@@ -303,14 +295,14 @@ const Fast: React.FC = () => {
         const cur = k === lit;
         const pop = spring({ frame: f - (k - 1) * per, fps: FPS, config: { damping: 14, stiffness: 160 } });
         return (
-          <div key={k} style={{ position: "absolute", left: cx(k) - nodeW / 2, top: rowY - nodeH / 2, width: nodeW, height: nodeH, borderRadius: 14, border: `3px solid ${on ? NODE_EDGE[i % 5] : LINE}`, background: on ? NODE_FILL[i % 5] : "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: on ? NAVY : MUTED, transform: `scale(${on ? 0.9 + 0.1 * pop : 1})`, boxShadow: cur ? `0 0 0 6px ${NODE_EDGE[i % 5]}33` : "none" }}>
-            <div style={{ fontWeight: 700, fontSize: tall ? 24 : 32 }}>R{k}</div>
-            {!tall && <div style={{ fontSize: 13, color: INK, opacity: on ? 1 : 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: nodeW - 14 }}>{(data.dag.labels as Record<string, string>)[String(k)]}</div>}
+          <div key={k} style={{ position: "absolute", left: pos[k].x - nodeW / 2, top: pos[k].y - nodeH / 2, width: nodeW, height: nodeH, borderRadius: 12, border: `3px solid ${on ? NODE_EDGE[i % 5] : LINE}`, background: on ? NODE_FILL[i % 5] : "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: on ? NAVY : MUTED, transform: `scale(${on ? 0.9 + 0.1 * pop : 1})`, boxShadow: cur ? `0 0 0 6px ${NODE_EDGE[i % 5]}33` : "none" }}>
+            <div style={{ fontWeight: 700, fontSize: tall ? 22 : 28, lineHeight: 1 }}>R{k}</div>
+            {!tall && <div style={{ fontSize: 12, color: INK, opacity: on ? 1 : 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: nodeW - 12, marginTop: 3 }}>{(data.dag.labels as Record<string, string>)[String(k)]}</div>}
           </div>
         );
       })}
-      <div style={{ position: "absolute", left: curveLeft, top: curveTop - (tall ? 44 : 50), fontSize: tall ? 18 : 22, color: INK }}>
-        <b>functional QA per request</b> <span style={{ color: MUTED }}>· % of checks passed, mean over the paper's runs (axis from 50)</span>
+      <div style={{ position: "absolute", left: curveLeft, top: curveTop - (tall ? 40 : 46), fontSize: tall ? 18 : 22, color: INK }}>
+        <b>functional QA per request</b> <span style={{ color: MUTED }}>· schematic: the deeper the request, the more earlier work it can break</span>
       </div>
     </AbsoluteFill>
   );
