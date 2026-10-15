@@ -1,10 +1,17 @@
+<div align="center">
+
+<img src="media/logo.svg" width="64" alt="">
+
 # EvoWeb
 
 Code, data and traces for **EvoWeb: A Benchmark for Coding Agents on Evolving Web Applications**
 ([arXiv:2610.16402](https://arxiv.org/abs/2610.16402)).
 
-[![arXiv](https://img.shields.io/badge/arXiv-2610.16402-b31b1b.svg)](https://arxiv.org/abs/2610.16402)
-[![Dataset on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-yellow)](https://huggingface.co/datasets/TD-Labs/EvoWeb)
+[![Blog](https://img.shields.io/badge/Blog-EvoWeb-1f5fd1?style=for-the-badge)](https://two-delta.github.io/evoweb-blog/)
+[![arXiv](https://img.shields.io/badge/arXiv-2610.16402-b31b1b?style=for-the-badge)](https://arxiv.org/abs/2610.16402)
+[![Dataset on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-yellow?style=for-the-badge)](https://huggingface.co/datasets/TD-Labs/EvoWeb)
+
+</div>
 
 ![EvoWeb overview. (A) Benchmark construction: WebGen-Bench seed prompts, grounded in real websites, expanded into a 10-request sequence with a dependency DAG, verified automatically and curated by hand into 32 applications times 10 requests. (B) Evaluating an evolving application: a coding agent handles the requests one after another; after each one a browser agent runs 5 tests (3 functional, 1 integration, 1 backward) and the trajectory is scored over user-tolerance thresholds.](media/method.png)
 
@@ -20,13 +27,15 @@ app. **Grade** summarises how much working functionality survives the whole sequ
 <div align="center">
 <table>
   <tr>
-    <td align="center" width="640">
-      <a href="media/webvoyager-demo.mp4"><img src="media/webvoyager-demo.gif" width="640" alt="The judge testing a Fable 5 app: numbered screenshot, thought, action, verdict"></a>
+    <td align="center" width="720">
+      <a href="media/evaluation-teaser.mp4"><img src="media/evaluation-teaser.gif" width="720" alt="One app, request after request: the user asks, the coding agent builds, the browser agent judges the live app check by check, and the request's pass rate lands on the timeline"></a>
       <br>
-      <sub><i>The judge at work: two checks on the last of the 10 requests of a hiring app that Fable 5
-      built, about 20× faster than real time. The browser agent sees the page with numbered elements,
-      thinks, acts and gives a verdict. Every step's screenshot, thought and action is kept in the
-      traces (<a href="media/webvoyager-demo.mp4">video</a>).</i></sub>
+      <sub><i>One app, request after request. Left: the user asks, the coding agent builds. Right: the browser
+      agent judges the live app, check by check, and the request's pass rate lands on the timeline. Every
+      request, tool call, screenshot and judge step is from the released trace of app 000001 (Opus 4.8);
+      request 1's verdicts are adjusted to show every grade. <a href="media/evaluation-teaser.mp4">Video</a>,
+      <a href="media/evaluation-demo.mp4">the 80-second version</a> with the scoring, and
+      <a href="media/evaluation-demo/">the source</a>.</i></sub>
     </td>
   </tr>
 </table>
