@@ -232,7 +232,7 @@ const Iteration: React.FC<{ i: number }> = ({ i }) => {
 
 /** Requests 1 to 10 as the app's dependency graph, laid out by depth, lighting up in request order,
  * with a schematic of functional QA falling as requests pile up drawn underneath. */
-const SCHEMATIC = [92, 88, 83, 77, 70, 64, 58, 52, 47, 42]; // illustrative, not measured
+const SCHEMATIC = [94, 92, 89, 84, 76, 66, 57, 51, 47, 45]; // illustrative, not measured: holds up, then falls, then flattens
 const Fast: React.FC = () => {
   const f = useCurrentFrame();
   const { tall, W, H } = useTall();
@@ -261,7 +261,13 @@ const Fast: React.FC = () => {
   const curveTop = tall ? 680 : 700, curveH = tall ? 260 : 280, curveLeft = gLeft + 50, curveRight = gRight - 10;
   const px = (k: number) => curveLeft + ((k - 1) / (n - 1)) * (curveRight - curveLeft);
   const py = (v: number) => curveTop + curveH - (v / 100) * curveH;
-  const pts = SCHEMATIC.slice(0, lit).map((v, i) => `${px(i + 1)},${py(v)}`);
+  // the curve is drawn continuously: a fractional position along the polyline, in step with the graph
+  const prog = Math.max(0, Math.min(n - 1, ((f - per * 0.5) / (per * (n - 1))) * (n - 1)));
+  const whole = Math.floor(prog), frac = prog - whole;
+  const at = (k: number) => SCHEMATIC[Math.min(n - 1, k)];
+  const tipV = at(whole) + (at(whole + 1) - at(whole)) * frac;
+  const tipX = px(whole + 1) + (px(Math.min(n, whole + 2)) - px(whole + 1)) * frac;
+  const pts = SCHEMATIC.slice(0, whole + 1).map((v, i) => `${px(i + 1)},${py(v)}`).concat(f > per * 0.5 ? [`${tipX},${py(tipV)}`] : []);
   return (
     <AbsoluteFill style={{ fontFamily: SANS, color: NAVY }}>
       <div style={{ position: "absolute", left: gLeft, top: tall ? 50 : 60, fontSize: tall ? 38 : 54, fontWeight: 700 }}>… through request 10</div>
@@ -287,7 +293,8 @@ const Fast: React.FC = () => {
           <text key={i} x={px(i + 1)} y={curveTop + curveH + (tall ? 22 : 26)} textAnchor="middle" fontSize={tall ? 15 : 18} fill={i + 1 <= lit ? NAVY : MUTED} fontFamily={SANS} fontWeight={i + 1 <= lit ? 700 : 400}>R{i + 1}</text>
         ))}
         {pts.length > 1 && <polyline points={pts.join(" ")} fill="none" stroke="#c05a5a" strokeWidth={4} strokeLinejoin="round" strokeLinecap="round" />}
-        {SCHEMATIC.slice(0, lit).map((v, i) => <circle key={i} cx={px(i + 1)} cy={py(v)} r={tall ? 6 : 7} fill="#c05a5a" />)}
+        {SCHEMATIC.slice(0, whole + 1).map((v, i) => <circle key={i} cx={px(i + 1)} cy={py(v)} r={tall ? 6 : 7} fill="#c05a5a" />)}
+        {f > per * 0.5 && <circle cx={tipX} cy={py(tipV)} r={tall ? 8 : 9} fill="#c05a5a" opacity={0.9} />}
       </svg>
       {Array.from({ length: n }, (_, i) => {
         const k = i + 1;
@@ -302,7 +309,7 @@ const Fast: React.FC = () => {
         );
       })}
       <div style={{ position: "absolute", left: curveLeft, top: curveTop - (tall ? 40 : 46), fontSize: tall ? 18 : 22, color: INK }}>
-        <b>functional QA per request</b> <span style={{ color: MUTED }}>· schematic: the deeper the request, the more earlier work it can break</span>
+        <b>Grade per request</b> <span style={{ color: MUTED }}>· schematic: the deeper the request, the more earlier work it can break</span>
       </div>
     </AbsoluteFill>
   );
