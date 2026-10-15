@@ -7,7 +7,7 @@ import { INK, KIND, LINE, MONO, MUTED, NAVY, NODE_EDGE, NODE_FILL, PAPER, SANS, 
 
 const FPS = 30;
 const S = (s: number) => Math.round(s * FPS);
-const HOOK = S(2.6);
+const HOOK = S(0.5);
 /** For illustration only (the teasers): request 1's real verdicts are six passes and one partial; two
  * of them are shown as a fail and a partial so the viewer sees every grade early. The pass rate shown
  * for R1 is recomputed from these; the main film and the scoring stay on the real trace. */
@@ -271,7 +271,7 @@ const Fast: React.FC = () => {
   return (
     <AbsoluteFill style={{ fontFamily: SANS, color: NAVY }}>
       <div style={{ position: "absolute", left: gLeft, top: tall ? 50 : 60, fontSize: tall ? 38 : 54, fontWeight: 700 }}>… through request 10</div>
-      <div style={{ position: "absolute", left: gLeft, top: tall ? 100 : 128, fontSize: tall ? 18 : 22, color: MUTED }}>each request depends on earlier ones: the dependency graph of this app, in request order</div>
+      <div style={{ position: "absolute", left: gLeft, top: tall ? 100 : 128, fontSize: tall ? 18 : 22, color: MUTED }}>DAG: the dependencies between the features, in request order</div>
       <svg width={W} height={H} style={{ position: "absolute", left: 0, top: 0 }}>
         <defs>
           <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill={NAVY} /></marker>
@@ -308,9 +308,7 @@ const Fast: React.FC = () => {
           </div>
         );
       })}
-      <div style={{ position: "absolute", left: curveLeft, top: curveTop - (tall ? 40 : 46), fontSize: tall ? 18 : 22, color: INK }}>
-        <b>Grade per request</b> <span style={{ color: MUTED }}>· schematic: the deeper the request, the more earlier work it can break</span>
-      </div>
+      <div style={{ position: "absolute", left: curveLeft - (tall ? 62 : 70), top: curveTop + curveH / 2, transform: "translate(-50%, -50%) rotate(-90deg)", fontSize: tall ? 18 : 22, fontWeight: 700, color: NAVY, whiteSpace: "nowrap" }}>QA score</div>
     </AbsoluteFill>
   );
 };
